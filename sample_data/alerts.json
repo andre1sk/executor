@@ -1,0 +1,10 @@
+[
+    {
+        "alert": "Phishing",
+        "email-id": "e1"
+    },
+    {
+        "alert": "Phishing",
+        "email-id": "e2"
+    }
+]

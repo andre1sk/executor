@@ -1,0 +1,16 @@
+[
+    {
+        "alert": "Phishing",
+        "email-id": 1,
+        "body": "This is a legitimate email from www.google.com.",
+        "url": "www.google.com",
+        "reputation": "Good"
+    },
+    {
+        "alert": "Phishing",
+        "email-id": 2,
+        "body": "Warning! You need to enter your credit card number at www.scam.com or bad things will happen!",
+        "url": "www.scam.com",
+        "reputation": "Bad"
+    }
+]

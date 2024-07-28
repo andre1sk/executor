@@ -1,0 +1,22 @@
+{
+    "phishing-email":[
+        {
+            "step": "get-body",
+            "action": "email_get_body",
+            "input": "email-id",
+            "output": "body"
+        },
+        {
+            "step": "extract-urls",
+            "action": "str_extract_url",
+            "input": "body",
+            "output": "url"
+        },
+        {
+            "step": "check-reputation",
+            "action": "url_check_reputation",
+            "input": "url",
+            "output": "reputation"
+        }
+    ]
+}
