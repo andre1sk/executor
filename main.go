@@ -7,16 +7,19 @@ import (
 
 func main() {
 	var logger = log.New(os.Stdout, "", log.LstdFlags)
-
-	workflowEngine, err := NewSimpleWorkflowEngine(logger, 10)
+	workflowDefs, err := LoadWorkflowDefs()
+	if err != nil {
+		log.Fatalf("Failed to load workflow definitions: %v", err)
+	}
+	workflowEngine, err := NewSimpleWorkflowEngine(logger, workflowDefs, 10)
 	if err != nil {
 		log.Fatalf("Failed to create workflow engine: %v", err)
 	}
 
 	// Run the workflows
-	payloads := []WorkflowToPayload{
+	payloads := []WorkflowsToPayload{
 		{
-			WorkflowID: "phishing-email",
+			WorkflowIDs: []string{"phishing-email", "dummy"},
 			Payload: WorkflowPayload{
 				"alert":    "Phishing",
 				"email-id": "e2"},

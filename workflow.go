@@ -64,14 +64,17 @@ func (w *Workflow) Run(payload WorkflowPayload) (WorkflowPayload, error) {
 
 type WorkflowPayload map[string]string
 
-type WorkflowToPayload struct {
-	WorkflowID string
-	Payload    WorkflowPayload
+type WorkflowsToPayload struct {
+	WorkflowIDs []string
+	Payload     WorkflowPayload
 }
 
 type WorkflowEngine interface {
-	Run([]WorkflowToPayload) ([]WorkflowPayload, error)
+	Run([]WorkflowsToPayload) ([]WorkflowPayload, error)
 }
+
+// verify interface compliance
+var _ WorkflowEngine = (*SimpleWorkflowEngine)(nil)
 
 type SimpleWorkflowEngine struct {
 	logger      *log.Logger
@@ -79,11 +82,7 @@ type SimpleWorkflowEngine struct {
 	MaxParallel int
 }
 
-func NewSimpleWorkflowEngine(logger *log.Logger, maxParallel int) (*SimpleWorkflowEngine, error) {
-	workflowDefs, err := LoadWorkflowDefs()
-	if err != nil {
-		return nil, err
-	}
+func NewSimpleWorkflowEngine(logger *log.Logger, workflowDefs map[string][]WorkflowStep, maxParallel int) (*SimpleWorkflowEngine, error) {
 	workflows := make(map[string]*Workflow)
 	for id, steps := range workflowDefs {
 		workflows[id] = NewWorkflow(id, steps, logger)
@@ -100,20 +99,24 @@ func NewSimpleWorkflowEngine(logger *log.Logger, maxParallel int) (*SimpleWorkfl
 	}, nil
 }
 
-func (we *SimpleWorkflowEngine) Run(workflows []WorkflowToPayload) ([]WorkflowPayload, error) {
-	var err error
-	results := make([]WorkflowPayload, len(workflows))
-	for i, wf := range workflows {
-		w, ok := we.workflows[wf.WorkflowID]
-		if !ok {
-			msg := fmt.Sprintf("workflow %s not found", wf.WorkflowID)
-			we.logger.Printf(msg)
-			return results, fmt.Errorf(msg)
+func (we *SimpleWorkflowEngine) Run(workflows []WorkflowsToPayload) ([]WorkflowPayload, error) {
+	var results []WorkflowPayload
+	for _, wfPayload := range workflows {
+		currentPayload := wfPayload.Payload
+		for _, wfID := range wfPayload.WorkflowIDs {
+			wf, ok := we.workflows[wfID]
+			if !ok {
+				msg := fmt.Sprintf("workflow %s not found", wfID)
+				we.logger.Printf(msg)
+				return results, fmt.Errorf(msg)
+			}
+			var err error
+			currentPayload, err = wf.Run(currentPayload)
+			if err != nil {
+				return results, err
+			}
 		}
-		results[i], err = w.Run(wf.Payload)
-		if err != nil {
-			return results, err
-		}
+		results = append(results, currentPayload)
 	}
 	return results, nil
 }

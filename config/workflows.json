@@ -18,5 +18,13 @@
             "input": "url",
             "output": "reputation"
         }
+    ],
+    "dummy": [
+        {
+            "step": "dummy",
+            "action": "dummy",
+            "input": "alert",
+            "output": "dummy"
+        }
     ]
 }
