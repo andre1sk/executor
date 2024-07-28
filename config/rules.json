@@ -1,0 +1,12 @@
+[
+    {
+        "name": "Phishing email Alert",
+        "match": {"key" : "alert", "value" : "Phishing"},
+        "workflow": "phishing-email"
+    },
+    {
+        "name": "Dummy Alert",
+        "match": {"key" : "alert", "value" : "Dummy"},
+        "workflow": "dummy"
+    }
+]

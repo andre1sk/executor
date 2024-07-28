@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"os"
 )
 
 type WorkflowStep struct {
@@ -16,22 +13,24 @@ type WorkflowStep struct {
 }
 
 type Workflow struct {
-	ID     string
-	Steps  []WorkflowStep
-	logger *log.Logger
+	ID           string
+	Steps        []WorkflowStep
+	logger       *log.Logger
+	ActionRunner ActionRunner
 }
 
-func NewWorkflow(id string, steps []WorkflowStep, logger *log.Logger) *Workflow {
+func NewWorkflow(id string, steps []WorkflowStep, logger *log.Logger, actionRunner ActionRunner) *Workflow {
 	return &Workflow{
-		ID:     id,
-		Steps:  steps,
-		logger: logger,
+		ID:           id,
+		Steps:        steps,
+		logger:       logger,
+		ActionRunner: actionRunner,
 	}
 }
 
 func (wd *Workflow) Validate() (errors []error) {
 	for _, step := range wd.Steps {
-		if !ActionExists(step.Action) {
+		if !wd.ActionRunner.ActionExists(step.Action) {
 			errors = append(errors, fmt.Errorf("%s's Action %s not found", step.Step, step.Action))
 		}
 	}
@@ -53,7 +52,7 @@ func (w *Workflow) Run(payload WorkflowPayload) (WorkflowPayload, error) {
 			w.logger.Printf("%s input %s is empty, done early", step.Step, step.Output)
 			return cpayload, nil
 		}
-		output, err := RunAction(step.Action, cpayload[step.Input])
+		output, err := w.ActionRunner.RunAction(step.Action, cpayload[step.Input])
 		if err != nil {
 			return cpayload, err
 		}
@@ -64,28 +63,27 @@ func (w *Workflow) Run(payload WorkflowPayload) (WorkflowPayload, error) {
 
 type WorkflowPayload map[string]string
 
-type WorkflowsToPayload struct {
+type PayloadWorkflows struct {
 	WorkflowIDs []string
 	Payload     WorkflowPayload
 }
 
 type WorkflowEngine interface {
-	Run([]WorkflowsToPayload) ([]WorkflowPayload, error)
+	Run([]PayloadWorkflows) ([]WorkflowPayload, error)
 }
 
 // verify interface compliance
 var _ WorkflowEngine = (*SimpleWorkflowEngine)(nil)
 
 type SimpleWorkflowEngine struct {
-	logger      *log.Logger
-	workflows   map[string]*Workflow
-	MaxParallel int
+	logger    *log.Logger
+	workflows map[string]*Workflow
 }
 
-func NewSimpleWorkflowEngine(logger *log.Logger, workflowDefs map[string][]WorkflowStep, maxParallel int) (*SimpleWorkflowEngine, error) {
+func NewSimpleWorkflowEngine(logger *log.Logger, actionRunner ActionRunner, workflowDefs map[string][]WorkflowStep) (*SimpleWorkflowEngine, error) {
 	workflows := make(map[string]*Workflow)
 	for id, steps := range workflowDefs {
-		workflows[id] = NewWorkflow(id, steps, logger)
+		workflows[id] = NewWorkflow(id, steps, logger, actionRunner)
 		errors := workflows[id].Validate()
 		if len(errors) > 0 {
 			return nil, fmt.Errorf("workflow %s has errors: %v", id, errors)
@@ -93,13 +91,12 @@ func NewSimpleWorkflowEngine(logger *log.Logger, workflowDefs map[string][]Workf
 	}
 
 	return &SimpleWorkflowEngine{
-		logger:      logger,
-		workflows:   workflows,
-		MaxParallel: maxParallel,
+		logger:    logger,
+		workflows: workflows,
 	}, nil
 }
 
-func (we *SimpleWorkflowEngine) Run(workflows []WorkflowsToPayload) ([]WorkflowPayload, error) {
+func (we *SimpleWorkflowEngine) Run(workflows []PayloadWorkflows) ([]WorkflowPayload, error) {
 	var results []WorkflowPayload
 	for _, wfPayload := range workflows {
 		currentPayload := wfPayload.Payload
@@ -123,22 +120,6 @@ func (we *SimpleWorkflowEngine) Run(workflows []WorkflowsToPayload) ([]WorkflowP
 
 func LoadWorkflowDefs() (map[string][]WorkflowStep, error) {
 	workflowDefs := map[string][]WorkflowStep{}
-	jsonFile, err := os.Open("config/workflows.json")
-	if err != nil {
-		return workflowDefs, fmt.Errorf("failed to open JSON file: %v", err)
-	}
-	defer jsonFile.Close()
-
-	// Read the JSON file
-	byteValue, err := io.ReadAll(jsonFile)
-	if err != nil {
-		return workflowDefs, fmt.Errorf("failed to read JSON file: %v", err)
-	}
-
-	err = json.Unmarshal(byteValue, &workflowDefs)
-	if err != nil {
-		return workflowDefs, fmt.Errorf("failed to parse JSON: %v", err)
-	}
-
-	return workflowDefs, nil
+	err := ParseJsonFileInto("config/workflows.json", &workflowDefs)
+	return workflowDefs, err
 }
