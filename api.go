@@ -16,15 +16,18 @@ type APIServer struct {
 
 func NewAPIServer(executor Executor, logger *log.Logger) *APIServer {
 	mux := http.NewServeMux()
-	return &APIServer{
+	server := &APIServer{
 		Executor: executor,
 		Logger:   logger,
 		mux:      mux,
 	}
+	// Register routes
+	server.mux.HandleFunc("POST /enrich", server.enrichHandler)
+	return server
 }
 
 func (s *APIServer) Start() error {
-	s.mux.HandleFunc("POST /enrich", s.enrichHandler)
+	s.Logger.Printf("Starting API server on http://localhost:8080")
 	return http.ListenAndServe(":8080", s.mux)
 }
 

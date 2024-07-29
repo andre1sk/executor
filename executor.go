@@ -33,7 +33,7 @@ func (se *SimpleExecutor) Enrich(alerts []Alert) ([]Alert, error) {
 			Payload:     WorkflowPayload(alert),
 		})
 	}
-	se.logger.Printf("wfPayloads: %v", wfPayloads)
+	se.logger.Printf("mapped payloads: %v", wfPayloads)
 
 	results, err := se.workflowEngine.Run(wfPayloads)
 	if err != nil {
