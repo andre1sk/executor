@@ -7,3 +7,8 @@
 **To hit the enrich api**
 
     run curl -X POST -H "Content-Type: application/json" -d @./sample_data/alerts.json http://localhost:8080/enrich
+
+**configs:**
+* config/emails.json - controls the fake body lookup results
+* config/rules.json - controls the rules for matching alerts to workflows
+* config/workflows.json - controls the workflow definitions
