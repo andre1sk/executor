@@ -39,7 +39,7 @@ func (s *APIServer) enrichHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enrichedAlerts, err := s.Executor.Enrich(alerts)
+	enrichedAlerts, err := s.Executor.EnrichParallel(alerts)
 	if err != nil {
 		s.Logger.Printf("Failed to enrich alerts: %v", err)
 		http.Error(w, "Failed to enrich alerts", http.StatusInternalServerError)
