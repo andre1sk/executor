@@ -140,17 +140,41 @@ func (s *StrExtractURLAction) Name() string {
 	return "str_extract_url"
 }
 
-type URLCheckReputationAction struct{}
+type URLCheckReputationAction struct {
+	safeBrowsingConfg map[string]string
+}
 
 // Verify interface compliance
 var _ Action = (*URLCheckReputationAction)(nil)
 
 func (u *URLCheckReputationAction) Run(in string) (out string, err error) {
-	out = "Good"
-	return
+	if _, ok := u.safeBrowsingConfg["api_key"]; !ok {
+		return "", fmt.Errorf("API key not found")
+	}
+
+	if _, ok := u.safeBrowsingConfg["threat_url"]; !ok {
+		return "", fmt.Errorf("threat URL not found")
+	}
+
+	resp, err := SafeBrowsingCheckURL(u.safeBrowsingConfg["api_key"], u.safeBrowsingConfg["threat_url"], in)
+	if err != nil {
+		return "", fmt.Errorf("failed to check URL reputation: %v", err)
+	}
+
+	if len(resp.Matches) > 0 {
+		return "bad", nil
+	}
+	return "good", nil
 }
 
 func (u *URLCheckReputationAction) Init() error {
+	var err error
+	u.safeBrowsingConfg = make(map[string]string)
+	err = ParseJsonFileInto("config/integrations/safebrowsing.json", &u.safeBrowsingConfg)
+	if err != nil {
+		return fmt.Errorf("failed to load safebrowsing config: %v", err)
+	}
+
 	return nil
 }
 
