@@ -1,4 +1,5 @@
 **To run the project:**
+* clone or download this repo
 * install latest go version for your OS from https://go.dev/dl/
 * put your safe browsing API key into config/integrations/safebrowsing.json
 * in terminal run ```go run .``` from project root
